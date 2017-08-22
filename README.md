@@ -1,2 +1,4 @@
-# LSSDBreastCancer
-Her2 imaging classification project for La Serena School of Data Science 2017
+# La Serena School of Data Science
+## *Her2* Breast Cancer Imaging project
+
+Project members: Alex Gordon, Liana Engie, Pia, Victor
