@@ -9,41 +9,21 @@
 
 import os
 os.chdir('c:\\Users\cooki\Dropbox\Computer\Science\LaSerena2017')
+import pandas as pd
 import numpy as np
+import glob
 import matplotlib
-import matplotlib.pyplot as plt
 import cv2
 import string
-from scipy import ndimage
 from PIL import Image
-from sklearn import svm
-import glob
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn import metrics
+from sklearn.decomposition import pca
 #from FPCA import pca
 
-cancerlist = glob.glob('Her2Cells\training\cancer\*')
-celllist = glob.glob('Her2Cells\training\cancer\*')
-subset_br = len(cancerlist)
-subset_bl = len(celllist)
-print("Combining %d potentially cancerous cells and %d below-threshold cells for training"
-      %(subset_br,subset_bl))
-
-#put the cancer and non canerous data together into the same np.array
-#X = cancermatrix
-#make a target vector 
-#y = seq(subset_br*1,subset_bl*1) #i don't actually know the syntax for this
-# PCA
-n_components = 5;
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.25, random_state=42)
-
-#don't need to use test_train_split yet because we're only training
-br_train = np.array([np.array(Image.open(cancerlist[i])).flatten() for i in subset_br])
-bl_train = np.array([np.array(Image.open(celllist[i])).flatten() for i in subset_bl])
-
-# Classifying images are cancerous or non cancerous
+# Classifying images are cancerous or non cancerous: 1% of pixels brown
+# Later changed to 199 images which are 0 if <20 cells are brown
 #answers=open("answerKey.txt","w")
 def countBrown(im):
     img = cv2.imread(im)
@@ -65,9 +45,43 @@ for i in range(1,85124):
     countBrown(image)
 """
 
-# Images are 40x40 pixel jpgs in HSB
-cvc = SVC(kernel='rbf',class_weight='balanced',C=0.025, probability=True)
-cvc.fit(br_train,bl_train)
+#list = glob.glob('Her2Cells\\trainingset\\*.jpg')
+key = pd.read_csv('Her2Cells\\trainingset\\answerKey.txt',sep=' ')
+key.columns = ['Name','Cancer']
+n_training = len(key)
+
+loc = 'Her2Cells\\trainingset\\'
+trainmatrix = np.array([np.array(Image.open(loc+key.Name[i])).flatten() for i in range(n_training)])
+
+"""
+fig, ax = plt.subplots(ncols = 2, figsize = (6, 6))
+ax.hist(key.Name[key.Cancer == 0], color = 'r', alpha = 0.5, label = "No Cancer", normed = True);
+ax.hist(Key.Name[key.Cancer == 1], color = 'b', alpha = 0.5, label = "May Have Cancer", normed = True);
+
+print("Combining %d potentially cancerous cells and %d below-threshold cells for training"
+      %(subset_br,subset_bl))
+
+br_train = np.array([np.array(Image.open(cancerlist[i])).flatten() for i in subset_br])
+bl_train = np.array([np.array(Image.open(celllist[i])).flatten() for i in subset_bl])
+"""
+
+"""
+br_train, br_test, bl_train, bl_test = train_test_split(
+    X, y, test_size=0.25, random_state=42) #random_state seeds RNG
+#don't need to use test_train_split yet because we're only training
+"""
+
+# PCA
+n_components = 50;
+pca = PCA(n_components=n_components,svd_solver='randomized').fit(trainmatrix)
+eigenfaces = pca.components_.reshape((3,40,40)) #40x40 pixel images
+
+data_train_pca = pca.transform(trainmatrix)
+
+#n_features = #from PCA
+
+cvc = GridSearchCV(SVC(kernel='rbf',class_weight='balanced',C=0.025, probability=True))
+cvc = cvc.fit(data_train_pca,key.Cancer)
 cat = ['Cancerous','Not Cancerous']
 
 
